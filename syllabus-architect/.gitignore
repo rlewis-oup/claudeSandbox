@@ -1,8 +1,35 @@
-node_modules/
-build/
-dist/
-coverage/
-.DS_Store
-*.log
-.env*
-!.env.example
+.claude/
+.claude-flow/
+.agents/
+
+# OS
+**/.DS_Store
+
+# Node
+**/node_modules/
+**/npm-debug.log*
+**/.vite/
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/.pytest_cache/
+**/.mypy_cache/
+**/*.egg-info/
+
+# IDE
+.vscode/
+.idea/
+
+# AWS / infra
+infra/cdk.out/
+.aws-sam/
+
+# Build output
+frontend/dist/
+
+# Env files
+**/.env
+**/.env.*
+!**/.env.example

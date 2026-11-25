@@ -1,0 +1,36 @@
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "syllabus-architect-web-adaptor-stack-dev"
+region = "us-east-1"
+resolve_s3 = true
+resolve_image_repos = true
+capabilities = "CAPABILITY_IAM"
+no_confirm_changeset = true
+no_fail_on_empty_changeset = true
+
+[dev.deploy.parameters]
+stack_name = "syllabus-architect-web-adaptor-stack-dev"
+region = "us-east-1"
+resolve_s3 = true
+resolve_image_repos = true
+capabilities = "CAPABILITY_IAM"
+no_confirm_changeset = true
+no_fail_on_empty_changeset = true
+parameter_overrides = [
+    "CognitoUserPoolId=us-east-1_aQ2J3ZH7b",
+    "CognitoClientId=7220bboico5qss7rlvhq2lrmhu",
+]
+
+[prod.deploy.parameters]
+stack_name = "syllabus-architect-web-adaptor-stack-prod"
+region = "us-east-1"
+resolve_s3 = true
+resolve_image_repos = true
+capabilities = "CAPABILITY_IAM"
+no_confirm_changeset = true
+no_fail_on_empty_changeset = true
+parameter_overrides = [
+    "CognitoUserPoolId=us-east-1_aQ2J3ZH7b",
+    "CognitoClientId=7220bboico5qss7rlvhq2lrmhu",
+]

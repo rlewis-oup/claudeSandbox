@@ -1,0 +1,88 @@
+name: Deploy by SAM
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Map branch to environment
+        run: |
+          case "${{ github.ref_name }}" in
+            main) echo "SAM_CONFIG_ENV=dev" >> "$GITHUB_ENV" ;;
+            release) echo "SAM_CONFIG_ENV=prod" >> "$GITHUB_ENV" ;;
+            *)
+              echo "No deploy environment mapped for branch '${{ github.ref_name }}'" >&2
+              exit 1
+              ;;
+          esac
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Read stack name from samconfig.toml
+        run: |
+          STACK_NAME=$(python3 - <<'EOF'
+          import os, tomllib
+          with open("samconfig.toml", "rb") as f:
+              config = tomllib.load(f)
+          env = os.environ["SAM_CONFIG_ENV"]
+          print(config[env]["deploy"]["parameters"]["stack_name"])
+          EOF
+          )
+          echo "STACK_NAME=$STACK_NAME" >> "$GITHUB_ENV"
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: aws-actions/setup-sam@v2
+
+      - name: Login to public ECR
+        run: aws ecr-public get-login-password --region us-east-1 | docker login --username AWS --password-stdin public.ecr.aws
+
+      - name: sam build
+        run: sam build
+
+      - name: sam deploy
+        run: sam deploy --config-env "$SAM_CONFIG_ENV"
+
+      - name: Get Function URL from stack outputs
+        run: |
+          API_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiFunctionUrl'].OutputValue" --output text)
+          echo "VITE_API_URL=${API_URL%/}" >> "$GITHUB_ENV"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Sync frontend to S3 and invalidate CloudFront
+        run: |
+          BUCKET=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendBucketName'].OutputValue" --output text)
+          aws s3 sync frontend/dist "s3://$BUCKET" --delete
+
+          DIST_ID=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" \
+            --query "Stacks[0].Outputs[?OutputKey=='FrontendDistributionId'].OutputValue" --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"

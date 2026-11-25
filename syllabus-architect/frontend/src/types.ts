@@ -8,12 +8,33 @@ export interface VocabularySet {
   items: string[];
 }
 
+export interface Lesson {
+  lessonNumber: string;
+  title: string;
+  grammar: GrammarItem[];
+}
+
+export interface ActivityCounts {
+  grammar: number;
+  vocabulary: number;
+  reading: number;
+  listening: number;
+  speaking: number;
+  writing: number;
+  total: number;
+}
+
 export interface DidacticUnit {
   unitNumber: number | string;
   title: string;
+  theme?: string;
+  lessons?: Lesson[];
   grammar: GrammarItem[];
   vocabulary: VocabularySet[];
+  lexicalItemCount?: number;
   topics: string[];
+  activityCounts?: ActivityCounts;
+  additionalFeatures?: string[];
 }
 
 export interface Coursebook {
@@ -22,12 +43,4 @@ export interface Coursebook {
   level?: string;
   publisher?: string;
   units: DidacticUnit[];
-}
-
-export interface ComparisonData {
-  commonGrammar: string[];
-  uniqueGrammar: Record<string, string[]>;
-  commonVocabulary: string[];
-  uniqueVocabulary: Record<string, string[]>;
-  suggestedSyllabus: DidacticUnit[];
 }
